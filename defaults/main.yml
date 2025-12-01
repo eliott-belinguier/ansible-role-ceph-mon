@@ -1,0 +1,13 @@
+---
+# Ceph Networks (CIDR)
+# ceph_cluster_network: Private network for OSD replication (highly recommended for performance)
+ceph_cluster_network: "10.21.0.0/16"
+# ceph_public_network: Public network for client access
+ceph_public_network: "10.20.0.0/16"
+
+# Initial Dashboard Credentials
+ceph_dashboard_user: admin
+ceph_dashboard_password: admin
+
+# Inventory Group Name for Monitors
+ceph_mon_group: mons

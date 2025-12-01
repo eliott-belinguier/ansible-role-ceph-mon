@@ -1,0 +1,4 @@
+---
+- name: Include install or uninstall tasks
+  include_tasks: "{{ 'install.yml' if state | default('present') == 'present' else 'uninstall.yml' }}"
+

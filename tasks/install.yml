@@ -1,0 +1,44 @@
+---
+- name: Check if cluster is already bootstrapped
+  # Prevents re-running bootstrap on an existing cluster.
+  stat:
+    path: /etc/ceph/ceph.conf
+  register: ceph_conf
+
+- name: Bootstrap Ceph Cluster (First node only)
+  # Initializes the Ceph control plane (Monitors, Managers) using cephadm.
+  # --mon-ip: The IP address the monitors will bind to.
+  # --cluster-network: The private network for OSD replication.
+  command: >
+    cephadm bootstrap --mon-ip {{ hostvars[inventory_hostname]['ceph_public_ip'] }}
+    --cluster-network {{ ceph_cluster_network }}
+    --initial-dashboard-user {{ ceph_dashboard_user }}
+    --initial-dashboard-password {{ ceph_dashboard_password }}
+    --allow-fqdn-hostname
+    --yes-i-know
+  when: 
+    - inventory_hostname == groups[ceph_mon_group][0]
+    - not ceph_conf.stat.exists
+  register: bootstrap_output
+
+- name: Display Dashboard Connection Info
+  # Shows the URL, user, and password to access the Ceph Dashboard immediately after bootstrap.
+  debug:
+    msg: "{{ bootstrap_output.stdout_lines }}"
+  when: 
+    - inventory_hostname == groups[ceph_mon_group][0]
+    - not ceph_conf.stat.exists
+    - bootstrap_output.changed
+
+- name: Read Cephadm Public Key (for host addition)
+  # Reads the generated SSH public key needed to authorize other nodes.
+  slurp:
+    src: /etc/ceph/ceph.pub
+  register: ceph_pub_key
+  when: inventory_hostname == groups[ceph_mon_group][0]
+
+- name: Save Public Key to Fact
+  # Stores the key in an Ansible fact so it can be accessed by other plays/hosts.
+  set_fact:
+    cephadm_public_key: "{{ ceph_pub_key['content'] | b64decode }}"
+  when: inventory_hostname == groups[ceph_mon_group][0]

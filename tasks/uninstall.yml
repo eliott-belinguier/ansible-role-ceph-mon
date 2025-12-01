@@ -1,0 +1,19 @@
+---
+- name: Check if Ceph configuration exists
+  stat:
+    path: /etc/ceph/ceph.conf
+  register: ceph_conf
+
+- name: Get FSID (if config exists)
+  command: ceph fsid
+  register: ceph_fsid
+  when: ceph_conf.stat.exists
+  ignore_errors: yes
+
+- name: Destroy Ceph Cluster (cephadm)
+  command: cephadm rm-cluster --force --fsid {{ ceph_fsid.stdout }}
+  when: 
+    - ceph_conf.stat.exists 
+    - ceph_fsid.rc == 0
+  ignore_errors: yes
+
